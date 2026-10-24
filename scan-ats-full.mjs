@@ -848,23 +848,29 @@ export async function runSeedScan(seedId, opts, ctx, seenUrls, label) {
     const entry = toPortalEntry(company);
     if (!entry.careers_url) return;
 
-    // Try each ATS provider's detect() — first hit wins.
+    // Seed slugs are not reliable ATS identifiers. Probe supported vendors
+    // rather than assuming that every portfolio company uses Greenhouse.
+    const candidates = company.ats && company.ats_id
+      ? [entry]
+      : SEED_PROVIDERS.map((p) => ({ ...entry, careers_url: p.id === 'lever'
+        ? `https://jobs.lever.co/${company.slug}`
+        : p.id === 'ashby'
+          ? `https://jobs.ashbyhq.com/${company.slug}`
+          : `https://job-boards.greenhouse.io/${company.slug}` }));
+    let jobs = [];
     let provider = null;
-    for (const p of SEED_PROVIDERS) {
+    for (const candidate of candidates) {
+      const p = SEED_PROVIDERS.find((vendor) => { try { return vendor.detect?.(candidate); } catch { return false; } });
+      if (!p) continue;
       try {
-        if (p.detect?.(entry)) { provider = p; break; }
-      } catch { /* no-op */ }
+        const found = await p.fetch(candidate, ctx);
+        if (found?.length) { jobs = found; provider = p; break; }
+      } catch (err) {
+        errors++;
+        if (opts.verbose) console.error(`  ✗ ${seedId}/${candidate.name} (${p.id}): ${err.message}`);
+      }
     }
-    if (!provider) return; // No ATS detected — skip silently (or log in --verbose).
-
-    let jobs;
-    try {
-      jobs = await provider.fetch(entry, ctx);
-    } catch (err) {
-      errors++;
-      if (opts.verbose) console.error(`  ✗ ${seedId}/${entry.name}: ${err.message}`);
-      return;
-    }
+    if (!provider) return;
 
     const sourceName = `${seedId}-seed`;
     for (const job of jobs) {
