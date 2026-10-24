@@ -1,0 +1,57 @@
+name: Exploratory AI and DevEx job scan
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: npm ci
+      - name: Configure anonymous exploratory search
+        shell: bash
+        run: |
+          cat > portals.yml <<'YAML'
+          title_filter:
+            positive:
+              - "Developer Experience"
+              - "Developer Productivity"
+              - "Engineering Productivity"
+              - "AI Enablement"
+              - "AI Productivity"
+              - "Developer Tools"
+              - "AI Platform"
+              - "Agentic"
+              - "AI Automation"
+              - "Engineering Enablement"
+            negative:
+              - "Intern"
+              - "Graduate"
+          YAML
+      - name: Scan public ATS boards (no LLM, no CV)
+        run: node scan-ats-full.mjs --ats greenhouse,lever,ashby,workday,icims,bamboohr --limit 50 --since 14
+      - name: Prepare public-posting-only digest
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p scan-output
+          if [ -f data/pipeline.md ]; then
+            cp data/pipeline.md scan-output/public-job-postings.md
+          else
+            echo 'No pipeline file produced; inspect workflow logs.' > scan-output/README.txt
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exploratory-ai-devex-postings
+          path: scan-output/
+          retention-days: 1
