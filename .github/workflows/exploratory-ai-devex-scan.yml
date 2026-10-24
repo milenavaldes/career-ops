@@ -1,4 +1,4 @@
-name: Exploratory AI and DevEx job scan
+name: Exploratory AI and DevEx job scan (include undated diagnostic)
 on:
   workflow_dispatch:
 permissions:
@@ -77,7 +77,7 @@ jobs:
           console.log('Remote US location smoke tests passed');
           NODE
       - name: Scan public ATS boards (no LLM, no CV)
-        run: node scan-ats-full.mjs --ats greenhouse,lever,ashby,workday,icims,bamboohr --seeds yc,a16z --shuffle --limit 100 --since 14
+        run: node scan-ats-full.mjs --ats greenhouse,lever,ashby,workday,icims,bamboohr --seeds yc,a16z --shuffle --limit 100 --since 14 --include-undated --verbose
       - name: Prepare public-posting-only digest
         if: always()
         shell: bash
