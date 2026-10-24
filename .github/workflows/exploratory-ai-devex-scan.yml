@@ -56,6 +56,26 @@ jobs:
               - "Anywhere in the US"
               - "Anywhere in the United States"
           YAML
+      - name: Validate scanner and Remote US filter
+        shell: bash
+        run: |
+          node --check scan-ats-full.mjs
+          node --check seeds/vc-portfolios.mjs
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          import assert from 'node:assert/strict';
+          import { buildLocationFilter } from './scan.mjs';
+          import { loadYaml } from './lib/yaml-document.mjs';
+          const config = loadYaml(readFileSync('portals.yml', 'utf8'));
+          const accepts = buildLocationFilter(config.location_filter);
+          for (const location of ['Remote - US', 'Remote (US)', 'Remote, United States']) {
+            assert.equal(accepts(location, '', ''), true, location);
+          }
+          for (const location of ['', 'London', 'Bengaluru, India', 'Hybrid - New York', 'San Francisco, CA']) {
+            assert.equal(accepts(location, '', 'Remote AI Engineer'), false, location);
+          }
+          console.log('Remote US location smoke tests passed');
+          NODE
       - name: Scan public ATS boards (no LLM, no CV)
         run: node scan-ats-full.mjs --ats greenhouse,lever,ashby,workday,icims,bamboohr --seeds yc,a16z --shuffle --limit 100 --since 14
       - name: Prepare public-posting-only digest
