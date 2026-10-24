@@ -39,6 +39,22 @@ jobs:
             negative:
               - "Intern"
               - "Graduate"
+          location_filter:
+            strict: true
+            remote_title_fallback: false
+            allow:
+              - "Remote - US"
+              - "Remote, US"
+              - "Remote (US)"
+              - "Remote (USA)"
+              - "Remote - United States"
+              - "Remote, United States"
+              - "US Remote"
+              - "USA Remote"
+              - "United States - Remote"
+              - "United States (Remote)"
+              - "Anywhere in the US"
+              - "Anywhere in the United States"
           YAML
       - name: Scan public ATS boards (no LLM, no CV)
         run: node scan-ats-full.mjs --ats greenhouse,lever,ashby,workday,icims,bamboohr --seeds yc,a16z --shuffle --limit 100 --since 14
