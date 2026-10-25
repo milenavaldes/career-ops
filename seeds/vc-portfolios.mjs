@@ -418,7 +418,11 @@ export async function fetchA16zCompanies({ timeoutMs = DEFAULT_TIMEOUT_MS } = {}
   } catch (err) {
     throw new Error(`vc-portfolios: a16z portfolio fetch failed — ${err.message}`);
   }
-  return parseA16zPayload(html);
+  const companies = parseA16zPayload(html);
+  if (companies.length === 0) {
+    throw new Error(`vc-portfolios: a16z portfolio returned zero parsed companies (HTML length: ${html.length}); page structure may have changed`);
+  }
+  return companies;
 }
 
 // ── SEED_SOURCES registry ────────────────────────────────────────────
